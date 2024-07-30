@@ -1,25 +1,91 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+output: html_document
+date: "`r Sys.Date()`"
 ---
 
+```{r setup, include=FALSE, echo=TRUE}
+#Read in data
+initialData <- read.csv("activity.csv", colClasses=c("numeric", "Date", "numeric"))
+#```
+#Mean and Median of Total Steps Taken Per Day
+#```{r}
+#Remove NA values from data
+data <- initialData[!(is.na(initialData$steps)),]
+#Aggregate times to each date and sum their values
+totalSteps <- aggregate(steps ~ date, data, sum)
+#Create a histogram of the steps take each day
+histTotalSteps <- hist(totalSteps$steps, breaks=30, 
+                       main= "Total Steps Taken Each Day", 
+                       xlab= "Steps Taken", col= "blue")
+#Calculate mean
+meanTotalSteps <- as.integer(mean(totalSteps$steps))
+#Calculate median
+medianTotalSteps <- (median(totalSteps$steps))
+paste("Mean =",meanTotalSteps, "and Median =", medianTotalSteps)
+```
+Average Daily Activity Pattern
+```{r}
+#Create table of mean steps over each interval
+meanStepsInterval <- aggregate(steps ~ interval, data, mean)
+#Create line plot (type="l") of average steps across each interval
+plot(meanStepsInterval$interval, meanStepsInterval$steps, type= "l", 
+     main= "Average Steps Taken Each Interval", xlab= "Interval (5 minutes)", 
+     ylab="Number of Steps", col="red")
+#Find the interval where maximum steps are averaged, display interval and value
+maxInterval <- meanStepsInterval[grep(max(meanStepsInterval$steps), (meanStepsInterval$steps)),]
+maxInterval
+```
+Imputing Missing Values
+```{r}
+#Create a new table which will replace NA values with the avaerage steps per interval
+imputedData <- initialData
+for(i in 1:17568){
+    if(is.na(imputedData[i,1])==TRUE){
+        imputedData[i,1] <- meanStepsInterval[meanStepsInterval$interval %in% imputedData[i,3],2]
+    }
+}
 
-## Loading and preprocessing the data
+#Aggregate steps to each date and sum their values
+imputedTotalSteps <- aggregate(steps~date, imputedData, sum)
+histimputedTotalSteps <- hist(imputedTotalSteps$steps, breaks=30, 
+                       main= "Total Steps Taken Each Day", 
+                       xlab= "Steps Taken", col= "purple")
+#Calculate mean
+meanimputedTotalSteps <- as.integer(mean(imputedTotalSteps$steps))
+#Calculate median
+medianimputedTotalSteps <- (median(imputedTotalSteps$steps))
+paste("Mean =",meanimputedTotalSteps, "and Median =", medianimputedTotalSteps)
+paste("Mean =",meanTotalSteps, "and Median =", medianTotalSteps)
+```
+Weekday vs Weekend Patterns
+```{r}
+#Create new data table from imputed data
+weekData <- imputedData
+#Use weekdays function to create a new column
+weekData$days <- weekdays(weekData$date)
+#Add a new column which labels rows as either week/ends based on the day
+weekData$weekday <- as.character(rep(0, times=17568))
+for (i in 1:17568) {
+    if(weekData[i,4] %in% c("Saturday", "Sunday")){
+        weekData[i,5] <- "weekend"
+    } else {
+        weekData[i,5] <- "weekday"
+    }
+}
+weekData$weekday <- factor(weekData$weekday)
 
+#Create two new tables, one for weekdays one for weekend
+weekdayData <- weekData[weekData$weekday=="weekday",]
+weekendData <- weekData[weekData$weekday=="weekend",]
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+#Find mean of each interval for the given data
+weekdayMean <- aggregate(steps~interval, weekdayData, mean)
+weekendMean <- aggregate(steps~interval, weekendData, mean)
+#Create a weekday and weekend plot to show average steps per interval
+par(mfrow=c(2,1))
+plot(weekdayMean$interval, weekdayMean$steps, type="l", 
+     main="Weekday Average Steps Each Interval", xlab= "Intervals (5 minutes)", ylab= "Number of Steps", col= "green")
+plot(weekendMean$interval, weekendMean$steps, type="l", 
+     main="Weekend Average Steps Each Interval", xlab= "Intervals (5 minutes)", ylab= "Number of Steps", col= "darkgreen")
+```
